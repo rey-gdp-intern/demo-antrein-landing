@@ -13,7 +13,7 @@ on:
 
 env:
   PROJECT_NAME: ${{ github.event.repository.name }}
-  PORT: 3000
+  PORT: 8080
 
   GCP_REGION: asia-southeast2
   GCP_ZONE: asia-southeast2-a
@@ -23,6 +23,10 @@ env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::302546992452:user/glair-exploration-rey-intern
   EKS_CLUSTER_NAME: sandbox-intern
+
+  CONFIG_BE_MODE: bc
+  CONFIG_INFRA_MODE: shared
+  BASE_URL: glair.id
 
 jobs:
   setup-environment:
@@ -56,6 +60,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Create secret
+        run: |
+          echo '${{ vars.ENV }}' > ./files/secrets/secrets.config.json
+
+      - name: Add Config
+        run: |
+          jq --arg be_mode "${{ env.CONFIG_BE_MODE }}" \
+            --arg infra_mode "${{ env.CONFIG_INFRA_MODE }}" \
+            --arg base_url "${{ env.BASE_URL }}" \
+            '. + {"be_mode": $be_mode, "infra_mode": $infra_mode, "infra": (.infra + { "manager_url": ("https://infra." + $base_url) })}' \
+            ./files/secrets/secrets.config.json > ./files/secrets/secrets.tmp.json \
+          && mv ./files/secrets/secrets.tmp.json ./files/secrets/secrets.config.json
+
+      - name: Test secret
+        run: |
+          cat ./files/secrets/secrets.config.json
 
       - name: Build and push Docker Image
         env: 
