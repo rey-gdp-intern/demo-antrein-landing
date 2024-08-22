@@ -57,23 +57,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create secret
-        run: |
-          echo '${{ vars.ENV }}' > ./files/secrets/secrets.config.json
-
-      - name: Add Config
-        run: |
-          jq --arg be_mode "${{ vars.CONFIG_BE_MODE }}" \
-            --arg infra_mode "${{ vars.CONFIG_INFRA_MODE }}" \
-            --arg base_url "${{ vars.BASE_URL }}" \
-            '. + {"be_mode": $be_mode, "infra_mode": $infra_mode, "infra": (.infra + { "manager_url": ("https://infra." + $base_url) })}' \
-            ./files/secrets/secrets.config.json > ./files/secrets/secrets.tmp.json \
-          && mv ./files/secrets/secrets.tmp.json ./files/secrets/secrets.config.json
-
-      - name: Test secret
-        run: |
-          cat ./files/secrets/secrets.config.json
-
       - name: Build and push Docker Image
         env: 
           IMAGE_NAME: ${{ needs.setup-environment.outputs.IMAGE_NAME }}
